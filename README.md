@@ -30,20 +30,52 @@ This action can be used for projects that are linked and setup at the org level 
 This YAML is meant to be triggered whenever an pull request has been labled.
 
 ```
+name: QA
 on:
-  pull requests:
-    types: [labeled]
+  pull_request:
+    types: [labeled, ready_for_review, reopened]
 jobs:
-  Move_Labeled_Issue_On_Project_Board:
+  traige:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     steps:
-    - uses: pauldruziak/move-labeled-or-milestoned-pr@v1.0
+    - name: Ready for QA
+      uses: pauldruziak/move-labeled-or-milestoned-pull-request@v1.0.1
       with:
-        action-token: "${{ secrets.MY_TOKEN }}"
-        project-url: "https://github.com/orgs/github/projects/1"
-        column-name: "On Deck"
-        label-name: "priority"
-        columns-to-ignore: "In Review,Ready to deploy,Done"
+        action-token: "${{ github.token }}"
+        project-url: "https://github.com/starburstlabs/crm-web/projects/10"
+        column-name: "Ready for QA"
+        label-name: "qa"
+        columns-to-ignore: "QA in progress,QA passed,QA failed"
+    - name: QA in progress
+      uses: pauldruziak/move-labeled-or-milestoned-pull-request@v1.0.1
+      with:
+        action-token: "${{ github.token }}"
+        project-url: "https://github.com/starburstlabs/crm-web/projects/10"
+        column-name: "QA in progress"
+        label-name: "qa in progress"
+    - name: QA passed
+      uses: pauldruziak/move-labeled-or-milestoned-pull-request@v1.0.1
+      with:
+        action-token: "${{ github.token }}"
+        project-url: "https://github.com/starburstlabs/crm-web/projects/10"
+        column-name: "QA passed"
+        label-name: "qa passed"
+    - name: QA failed
+      uses: pauldruziak/move-labeled-or-milestoned-pull-request@v1.0.1
+      with:
+        action-token: "${{ github.token }}"
+        project-url: "https://github.com/starburstlabs/crm-web/projects/10"
+        column-name: "QA failed"
+        label-name: "qa failed"
+    - name: WIP
+      uses: pauldruziak/move-labeled-or-milestoned-pull-request@v1.0.1
+      with:
+        action-token: "${{ github.token }}"
+        project-url: "https://github.com/starburstlabs/crm-web/projects/10"
+        label-name: "wip"
+        delete-card: "true"
+
  ```
 
 ### Example YAML (milestone)
@@ -58,7 +90,7 @@ jobs:
   Move_Milestoned_Issue_On_Project_Board:
     runs-on: ubuntu-latest
     steps:
-    - uses: pauldruziak/move-labeled-or-milestoned-pr@v1.0
+    - uses: pauldruziak/move-labeled-or-milestoned-pull-request@v1.0.1
       with:
         action-token: "${{ secrets.MY_TOKEN }}"
         project-url: "https://github.com/orgs/github/projects/1"
