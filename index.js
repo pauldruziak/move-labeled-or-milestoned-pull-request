@@ -9,6 +9,7 @@ async function run() {
     const labelName = core.getInput("label-name");
     const milestoneName = core.getInput("milestone-name");
     const ignoreList = core.getInput("columns-to-ignore");
+    const deleteCard = core.getInput("delete-card");
     const octokit = new github.GitHub(myToken);
     const context = github.context;
 
@@ -19,8 +20,17 @@ async function run() {
         throw new Error("label-name and milestone-name cannot both be set");
     }
 
+    if(deleteCard != "true" && !columnName){
+        throw new Error("one of delete-card and column-name must be set");
+    }
+    else if (deleteCard == "true" && columnName){
+        throw new Error("delete-card and column-name cannot both be set");
+    }
+
     var found = false;
-    if(labelName){
+    if (labelName == "*"){
+        found = true;
+    } else if(labelName){
         context.payload.pull_request.labels.forEach(function(item){
             if(labelName == item.name){
                 found = true;
@@ -54,16 +64,21 @@ async function run() {
         }
         else if (cardId != null){
             // card already exists for the pull request
-            // move card to the appropriate column
-            return await moveExistingCard(octokit, columnId, cardId);
-        } else {
+            if (deleteCard == "true"){
+                // delete card from the project
+                return await deleteExistingCard(octokit, columnId, cardId);
+            } else {
+                // move card to the appropriate column
+                return await moveExistingCard(octokit, columnId, cardId);
+            }
+        } else if (deleteCard != "true") {
             // card is not present
             // create new card in the appropriate column
             return await createNewCard(octokit, columnId, context.payload.pull_request.id);
         }
     } else {
         // None of the labels match what we are looking for, non-indicative of a failure though
-        return `Issue #${context.payload.pull_request.id} does not have a label that matches ${labelName}, ignoring`;
+        return `Pull request #${context.payload.pull_request.id} does not have a label that matches ${labelName}, ignoring`;
     }
 }
 
@@ -81,10 +96,18 @@ async function moveExistingCard(octokit, columnId, cardId){
     console.log(`A card already exists for the pull request. Attempting to move card #${cardId} to column #${columnId}`);
     await octokit.projects.moveCard({
         card_id: cardId,
-        position: "bottom",
+        position: "top",
         column_id: columnId
     });
     return `Succesfully moved card #${cardId} to column #${columnId} !`;
+}
+
+async function deleteExistingCard(octokit, columnId, cardId){
+    console.log(`A card already exists for the pull request. Attempting to delete card #${cardId}`);
+    await octokit.projects.deleteCard({
+        card_id: cardId
+    });
+    return `Succesfully deleted card #${cardId} !`;
 }
 
 async function tryGetColumnAndCardInformation(columnName, projectUrl, token, prDatabaseId){
